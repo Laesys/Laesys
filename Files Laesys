@@ -1,128 +1,274 @@
-Отлично! Теперь мы переходим к следующему этапу — **реализации функциональности для взаимодействия с Telegram-ботом**. Ниже я покажу, как можно добавить **возможность входа через Telegram Web App**, чтобы вы могли **управлять ботом `.baha` прямо из веб-интерфейса**, который будет запускаться через Telegram.
-
----
-
-## ✅ Что ты получишь:
-1. **Вход через Telegram WebApp (встроенную веб-страницу Telegram)**
-2. **Авторизацию пользователя по данным от Telegram**
-3. **Интерфейс управления ботом: команды, настройки и т.д.**
-
----
-
-## 🛠 1. Подготовка
-
-### a. Убедитесь, что ваш бот работает через Telegram WebApp
-Для этого нужно:
-- Зарегистрировать бота у [@BotFather](https://t.me/BotFather)
-- Получить токен
-- Установить `WebApp URL` в BotFather (`/setwebapp`)
-- Указать ссылку на ваш хостинг (например, `https://yourdomain.com/app`)
-
----
-
-## 💻 2. Обновленный `App.jsx` — Вход через Telegram и панель управления
-
 ```jsx
 import { useState, useEffect } from 'react';
 
 const App = () => {
-  const [user, setUser] = useState(null);
-  const [commandOutput, setCommandOutput] = useState('');
-
-  // Проверяем, доступен ли Telegram WebApp
-  useEffect(() => {
-    if (window.Telegram && window.Telegram.WebApp) {
-      const webApp = window.Telegram.WebApp;
-      webApp.ready();
-
-      const userData = webApp.initDataUnsafe?.user;
-      if (userData) {
-        setUser(userData);
-      }
+  // State for mobile menu toggle
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
+  // Sample data for game features
+  const features = [
+    {
+      title: "Автоматический режим",
+      description: "Искусственный интеллект помогает вам в бою и принимает тактические решения.",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      )
+    },
+    {
+      title: "Карта с врагами",
+      description: "Показывает точное местоположение противников в радиусе видимости.",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+        </svg>
+      )
+    },
+    {
+      title: "Улучшение оружия",
+      description: "Максимально прокачивает ваше оружие за считанные секунды.",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      )
+    },
+    {
+      title: "Быстрое перемещение",
+      description: "Телепортирует вас в безопасные зоны или к цели за доли секунд.",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+        </svg>
+      )
     }
-  }, []);
-
-  const sendCommand = (cmd) => {
-    // Здесь имитируем выполнение команды
-    let response = '';
-    switch (cmd) {
-      case '/start':
-        response = `Привет, ${user?.first_name}! Добро пожаловать в .baha`;
-        break;
-      case '/help':
-        response = "Доступные команды: /start, /help, /attack, /defend";
-        break;
-      case '/attack':
-        response = "Атакую противника... 👊💥";
-        break;
-      case '/defend':
-        response = "Перехожу в режим защиты... 🛡️";
-        break;
-      default:
-        response = "Неизвестная команда.";
-    }
-
-    setCommandOutput((prev) => `${new Date().toLocaleTimeString()} > ${response}\n${prev}`);
-  };
+  ];
 
   return (
     <div className="bg-gray-900 text-white min-h-screen font-sans">
-      {/* Header */}
-      <header className="bg-gray-800 p-4 shadow-md">
-        <div className="container mx-auto flex justify-between items-center">
+      {/* Navigation */}
+      <header className="sticky top-0 z-50 bg-gray-800 shadow-md">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-500" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12zM7 9a1 1 0 100-2 1 1 0 000 2zm7 0a1 1 0 100-2 1 1 0 000 2z" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.07-.587C2.895 14.427 1.5 13.214 1.5 11.86a4.074 4.074 0 01.593-2.208 3.029 3.029 0 011.237-1.387A2.048 2.048 0 014.5 7.5c.192-.384.414-.75.664-1.097.25-.347.53-.67.835-.965.305-.295.635-.56 1.002-.792.367-.232.764-.43 1.19-.592.426-.163.876-.29 1.35-.38.473-.088.97-.14 1.492-.14 1.32 0 2.567.21 3.737.628 1.17.419 2.213.987 3.13 1.705l-1.983 2.644z" clipRule="evenodd" />
             </svg>
-            <span className="text-xl font-bold">.baha</span>
+            <span className="text-xl font-bold text-white">FireBot</span>
           </div>
 
-          {user && (
-            <div className="flex items-center space-x-2">
-              <span className="text-sm">{user.first_name}</span>
-              {user.photo_url && <img src={user.photo_url} alt="avatar" className="w-8 h-8 rounded-full" />}
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {!user ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <h2 className="text-2xl font-bold mb-4">Для продолжения войдите через Telegram</h2>
-            <p className="text-gray-400 mb-6">Эта страница должна быть открыта внутри Telegram</p>
-            <button
-              onClick={() => alert('Пожалуйста, откройте эту страницу через Telegram WebApp')}
-              className="px-6 py-2 bg-purple-600 rounded hover:bg-purple-700 transition"
-            >
-              Открыть в Telegram
+          {/* Desktop Menu */}
+          <nav className="hidden md:flex items-center space-x-8">
+            <a href="#features" className="text-sm font-medium hover:text-red-500 transition duration-300">Функции</a>
+            <a href="#how-it-works" className="text-sm font-medium hover:text-red-500 transition duration-300">Как работает</a>
+            <a href="#faq" className="text-sm font-medium hover:text-red-500 transition duration-300">Вопросы</a>
+            <button className="px-5 py-2 bg-red-600 rounded-full text-sm font-semibold hover:bg-red-700 transition duration-300">
+              Подключить
             </button>
-          </div>
-        ) : (
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6">Управление ботом .baha</h2>
+          </nav>
 
-            <div className="bg-gray-800 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold mb-2">Команды</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => sendCommand('/start')} className="py-2 bg-purple-700 rounded hover:bg-purple-600 transition">/start</button>
-                <button onClick={() => sendCommand('/help')} className="py-2 bg-purple-700 rounded hover:bg-purple-600 transition">/help</button>
-                <button onClick={() => sendCommand('/attack')} className="py-2 bg-red-700 rounded hover:bg-red-600 transition">/attack</button>
-                <button onClick={() => sendCommand('/defend')} className="py-2 bg-blue-700 rounded hover:bg-blue-600 transition">/defend</button>
-              </div>
-            </div>
+          {/* Mobile Menu Button */}
+          <button 
+            className="md:hidden text-white focus:outline-none"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {isMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
+        </div>
 
-            <div className="bg-gray-800 rounded-lg p-4 font-mono text-sm h-64 overflow-y-auto">
-              <pre className="whitespace-pre-wrap">{commandOutput || 'Логи команд появятся здесь...'}</pre>
-            </div>
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden bg-gray-800 p-4">
+            <nav className="flex flex-col space-y-4">
+              <a href="#features" className="text-sm font-medium hover:text-red-500 transition duration-300">Функции</a>
+              <a href="#how-it-works" className="text-sm font-medium hover:text-red-500 transition duration-300">Как работает</a>
+              <a href="#faq" className="text-sm font-medium hover:text-red-500 transition duration-300">Вопросы</a>
+              <button className="px-5 py-2 bg-red-600 rounded-full text-sm font-semibold hover:bg-red-700 transition duration-300">
+                Подключить
+              </button>
+            </nav>
           </div>
         )}
-      </main>
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative overflow-hidden pt-16 pb-20 sm:pt-24 sm:pb-24">
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-gray-800 opacity-80"></div>
+          <img src="https://picsum.photos/seed/freifirebot/1920/1080" alt="Free Fire background" className="w-full h-full object-cover" />
+        </div>
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="max-w-3xl">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-6 leading-tight">
+              Лучший Telegram бот для <span className="text-red-500">Garena Free Fire</span>
+            </h1>
+            <p className="text-lg sm:text-xl text-gray-200 mb-8">
+              Улучшите свой игровой опыт с помощью нашего умного бота, который поможет выигрывать каждый матч.
+            </p>
+            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+              <button className="px-8 py-3 bg-red-600 rounded-full text-lg font-semibold hover:bg-red-700 transition duration-300 transform hover:scale-105 shadow-lg">
+                Начать играть
+              </button>
+              <button className="px-8 py-3 bg-gray-700 bg-opacity-50 backdrop-filter backdrop-blur-sm rounded-full text-lg font-semibold hover:bg-gray-600 transition duration-300 border border-gray-600">
+                Посмотреть видео
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-16 bg-gray-800">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Основные функции</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Наши продвинутые функции помогут вам стать лучшим игроком в Garena Free Fire.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {features.map((feature, index) => (
+              <div 
+                key={index} 
+                className="bg-gray-700 bg-opacity-30 backdrop-filter backdrop-blur-sm rounded-xl p-6 hover:bg-opacity-40 transition duration-300 transform hover:-translate-y-1 hover:shadow-xl"
+              >
+                <div className="text-red-500 mb-4">{feature.icon}</div>
+                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
+                <p className="text-gray-300">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section id="how-it-works" className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Как это работает</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Просто следуйте этим шагам, чтобы начать использовать FireBot в игре.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-gray-800 p-6 rounded-xl text-center">
+              <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-bold">1</span>
+              </div>
+              <h3 className="text-xl font-bold mb-3">Подпишитесь на бота</h3>
+              <p className="text-gray-400">
+                Перейдите по ссылке и подпишитесь на нашего Telegram бота.
+              </p>
+            </div>
+            
+            <div className="bg-gray-800 p-6 rounded-xl text-center">
+              <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-bold">2</span>
+              </div>
+              <h3 className="text-xl font-bold mb-3">Активируйте бота</h3>
+              <p className="text-gray-400">
+                Введите команду активации в чат с ботом перед началом игры.
+              </p>
+            </div>
+            
+            <div className="bg-gray-800 p-6 rounded-xl text-center">
+              <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-bold">3</span>
+              </div>
+              <h3 className="text-xl font-bold mb-3">Выигрывайте матчи</h3>
+              <p className="text-gray-400">
+                Используйте преимущества от бота и побеждайте в каждом матче!
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-gradient-to-r from-red-600 to-orange-500">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-6 text-white">Готовы стать чемпионом?</h2>
+          <p className="text-white text-opacity-90 max-w-xl mx-auto mb-8">
+            Присоединяйтесь к тысячам игроков, которые уже используют FireBot для побед в Free Fire.
+          </p>
+          <button className="px-8 py-3 bg-white text-red-600 rounded-full text-lg font-semibold hover:bg-opacity-90 transition duration-300 transform hover:scale-105 shadow-lg">
+            Подключить бота сейчас
+          </button>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="py-16 bg-gray-800">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Часто задаваемые вопросы</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Ответы на самые популярные вопросы о нашем Telegram боте для Free Fire.
+            </p>
+          </div>
+
+          <div className="max-w-3xl mx-auto space-y-6">
+            <div className="bg-gray-700 bg-opacity-30 backdrop-filter backdrop-blur-sm rounded-xl p-6">
+              <h3 className="text-xl font-bold mb-2">Это безопасно использовать?</h3>
+              <p className="text-gray-300">
+                Да, наш бот полностью безопасен. Мы используем только легальные методы взаимодействия с игрой через Telegram API.
+              </p>
+            </div>
+            
+            <div className="bg-gray-700 bg-opacity-30 backdrop-filter backdrop-blur-sm rounded-xl p-6">
+              <h3 className="text-xl font-bold mb-2">Нужно ли скачивать дополнительные приложения?</h3>
+              <p className="text-gray-300">
+                Нет, всё работает через Telegram. Вам не нужно устанавливать дополнительные приложения или моды для игры.
+              </p>
+            </div>
+            
+            <div className="bg-gray-700 bg-opacity-30 backdrop-filter backdrop-blur-sm rounded-xl p-6">
+              <h3 className="text-xl font-bold mb-2">Работает ли бот на Android и iOS?</h3>
+              <p className="text-gray-300">
+                Да, бот совместим со всеми платформами. Он работает одинаково хорошо как на Android, так и на iOS устройствах.
+              </p>
+            </div>
+            
+            <div className="bg-gray-700 bg-opacity-30 backdrop-filter backdrop-blur-sm rounded-xl p-6">
+              <h3 className="text-xl font-bold mb-2">Есть ли бесплатный тестовый период?</h3>
+              <p className="text-gray-300">
+                Мы предлагаем 24-часовой бесплатный пробный период, чтобы вы могли протестировать все функции бота.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-center py-4 text-sm text-gray-500 mt-8">
-        © 2025 .baha | Управление через Telegram WebApp
+      <footer className="bg-gray-900 py-12">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="mb-6 md:mb-0">
+              <div className="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.07-.587C2.895 14.427 1.5 13.214 1.5 11.86a4.074 4.074 0 01.593-2.208 3.029 3.029 0 011.237-1.387A2.048 2.048 0 014.5 7.5c.192-.384.414-.75.664-1.097.25-.347.53-.67.835-.965.305-.295.635-.56 1.002-.792.367-.232.764-.43 1.19-.592.426-.163.876-.29 1.35-.38.473-.088.97-.14 1.492-.14 1.32 0 2.567.21 3.737.628 1.17.419 2.213.987 3.13 1.705l-1.983 2.644z" clipRule="evenodd" />
+                </svg>
+                <span className="text-lg font-bold text-white">FireBot</span>
+              </div>
+              <p className="text-gray-500 mt-2">© 2025 Все права защищены.</p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-8">
+              <a href="#" className="text-gray-400 hover:text-white transition duration-300">Политика конфиденциальности</a>
+              <a href="#" className="text-gray-400 hover:text-white transition duration-300">Условия использования</a>
+              <a href="#" className="text-gray-400 hover:text-white transition duration-300">Контакты</a>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   );
@@ -130,51 +276,3 @@ const App = () => {
 
 export default App;
 ```
-
----
-
-## 🔧 Как это работает:
-
-| Функция | Описание |
-|--------|----------|
-| `Telegram.WebApp` | Позволяет работать с Telegram WebApp API |
-| `initDataUnsafe.user` | Получает данные пользователя (логин, ID, фото) |
-| Команды | Пример простого CLI-интерфейса внутри веб-приложения |
-| WebApp URL | Страница, которую вы загружаете через Telegram |
-
----
-
-## 📦 Как подключить к Telegram:
-
-1. Перейдите к [@BotFather](https://t.me/BotFather)
-2. Используйте команду `/setwebapp`
-3. Выберите вашего бота
-4. Введите URL вашей веб-страницы, например:
-   ```
-   https://yourdomain.com/app
-   ```
-
----
-
-## 🚀 Где разместить?
-
-Вы можете опубликовать этот сайт на любом статическом хостинге:
-
-- [Vercel](https://vercel.com/)
-- [Netlify](https://netlify.com/)
-- [GitHub Pages](https://pages.github.com/)
-- [Render](https://render.com/)
-
----
-
-## 🧠 Что можно добавить дальше:
-
-- Сохранение состояния игрока в localStorage
-- Интеграция с сервером через WebSocket или REST API
-- Настройки бота: автоматическая атака, защита, сканирование
-- Отправка данных обратно в Telegram через `postEvent`
-- Активация премиум-функций
-
----
-
-Хочешь, я помогу тебе создать **бэкенд**, который будет принимать команды от этой страницы и управлять реальным ботом? Например, через Node.js + Express или Firebase.
